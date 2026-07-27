@@ -22,7 +22,7 @@ export default function PenghuniKeluhan() {
 
   const handleSubmit = async () => {
     if (!idKamar || !isi) return;
-    await createKeluhan({ id_kamar: Number(idKamar), isi_keluhan: isi });
+    await createKeluhan({ id_kamar: idKamar, isi_keluhan: isi });
     setIdKamar(''); setIsi(''); loadRiwayat(); setTab('riwayat');
   };
 

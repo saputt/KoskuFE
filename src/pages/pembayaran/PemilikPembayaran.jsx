@@ -11,7 +11,7 @@ export default function PemilikPembayaran() {
 
   const load = () => {
     if (tab === 'verifikasi') getPembayaranList({ status: 'menunggu_verifikasi' }).then(r => setData(r.data));
-    else getLaporanPembayaran().then(r => { setLaporan(r.data); setData(r.data.data); });
+    else getLaporanPembayaran().then(r => { setLaporan(r); setData(r.data); });
   };
   useEffect(() => { load(); }, [tab]);
 

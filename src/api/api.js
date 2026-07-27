@@ -1,16 +1,28 @@
 const BASE_URL = '/api/v1';
 
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
+
 export async function apiFetch(endpoint, options = {}) {
   const token = localStorage.getItem('token');
-  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  const headers = { ...options.headers };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   const res = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
+  const json = await res.json().catch(() => ({ message: res.statusText }));
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message || 'Request failed');
+    throw new ApiError(json.message || 'Request failed', res.status);
   }
-  return res.json();
+
+  return json;
 }
 
 export function apiGet(endpoint, params) {
@@ -31,8 +43,5 @@ export function apiDelete(endpoint) {
 }
 
 export function apiUpload(endpoint, formData) {
-  const token = localStorage.getItem('token');
-  const headers = {};
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  return fetch(`${BASE_URL}${endpoint}`, { method: 'POST', headers, body: formData }).then(r => r.json());
+  return apiFetch(endpoint, { method: 'POST', body: formData });
 }

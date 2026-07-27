@@ -11,12 +11,12 @@ export default function Login() {
   const loadUser = useAuthStore(s => s.loadUser);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const ok = login(email, password);
+    const ok = await login(email, password);
     if (!ok) { setError('Email atau password salah. Coba lagi.'); return; }
-    loadUser();
+    await loadUser();
     const user = useAuthStore.getState().user;
     navigate(user?.role === 'pemilik' ? '/pemilik/dashboard' : '/penghuni/dashboard', { replace: true });
   };

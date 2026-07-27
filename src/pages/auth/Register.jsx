@@ -11,13 +11,17 @@ export default function Register() {
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErr('');
     if (form.password !== form.konfirmasi) { setErr('Password dan konfirmasi tidak cocok.'); return; }
-    const ok = register({ nama: form.nama, email: form.email, no_hp: form.no_hp, password: form.password, role: 'penghuni' });
-    if (!ok) { setErr('Email sudah terdaftar.'); return; }
-    navigate('/login');
+    try {
+      await register({ nama: form.nama, email: form.email, no_hp: form.no_hp, password: form.password, role: 'penghuni' });
+      const user = useAuthStore.getState().user;
+      navigate(user?.role === 'pemilik' ? '/pemilik/dashboard' : '/penghuni/dashboard', { replace: true });
+    } catch (err) {
+      setErr(err.message || 'Email sudah terdaftar.');
+    }
   };
 
   return (

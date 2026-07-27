@@ -10,7 +10,7 @@ export default function PemilikFormKamar() {
   const [form, setForm] = useState({ no_kamar: '', harga_sewa: '', kapasitas: '', status: 'tersedia', fasilitas: '' });
 
   useEffect(() => {
-    if (isEdit) getKamarDetail(Number(id)).then(r => {
+    if (isEdit) getKamarDetail(id).then(r => {
       const k = r.data;
       setForm({ no_kamar: k.no_kamar, harga_sewa: k.harga_sewa, kapasitas: k.kapasitas, status: k.status, fasilitas: k.fasilitas || '' });
     });
@@ -21,7 +21,7 @@ export default function PemilikFormKamar() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = { ...form, harga_sewa: Number(form.harga_sewa), kapasitas: Number(form.kapasitas) };
-    if (isEdit) await updateKamar(Number(id), payload);
+    if (isEdit) await updateKamar(id, payload);
     else await createKamar(payload);
     navigate(ROUTES.PEMILIK.KAMAR);
   };

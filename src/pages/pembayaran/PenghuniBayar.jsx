@@ -18,7 +18,7 @@ export default function PenghuniBayar() {
 
   useEffect(() => {
     getTagihanList({ id_user: user.id_user }).then(r => {
-      const t = r.data.find(t => t.id_tagihan === Number(id));
+      const t = r.data.find(t => t.id_tagihan === id);
       setTagihan(t);
       if (t) setJumlah(t.total_tagihan);
     });
@@ -27,7 +27,7 @@ export default function PenghuniBayar() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await bayarTagihan({ id_tagihan: Number(id), metode_pembayaran: metode, jumlah_bayar: Number(jumlah) });
+    await bayarTagihan({ id_tagihan: id, metode_pembayaran: metode, jumlah_bayar: Number(jumlah) });
     navigate(ROUTES.PENGHUNI.TAGIHAN);
   };
 

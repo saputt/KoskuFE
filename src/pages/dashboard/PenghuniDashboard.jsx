@@ -22,7 +22,7 @@ export default function PenghuniDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    getDashboardPenghuni(user.id_user).then(r => setStats(r.data));
+    getDashboardPenghuni().then(r => setStats(r.data));
     getAktivitas().then(r => setAktivitas(r.data));
   }, []);
 

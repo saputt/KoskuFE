@@ -15,7 +15,7 @@ export default function PenghuniAjukanSewa() {
     const id = params.get('kamar');
     if (id) {
       getKamarList({}).then(r => {
-        const k = r.data.find(k => k.id_kamar === Number(id));
+        const k = r.data.find(k => k.id_kamar === id);
         if (k) { setKamar(k); setForm(f => ({ ...f, id_kamar: k.id_kamar })); }
       });
     }
@@ -23,7 +23,7 @@ export default function PenghuniAjukanSewa() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await ajukanSewa({ ...form, id_kamar: Number(form.id_kamar) });
+    await ajukanSewa({ ...form, id_kamar: form.id_kamar });
     navigate(ROUTES.PENGHUNI.PENYEWAAN);
   };
 

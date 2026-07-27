@@ -1,39 +1,53 @@
 import { create } from 'zustand';
-import { mockDb } from '../api/mockData';
+import { apiPost, apiGet } from '../api/api';
 
 const useAuthStore = create((set) => ({
   user: null,
   token: localStorage.getItem('token') || null,
   isAuthenticated: !!localStorage.getItem('token'),
 
-  login: (email, password) => {
-    const found = mockDb.getUsers().find(u => u.email === email && u.password === password);
-    if (!found) return false;
-    const token = `mock-token-${found.id_user}`;
-    const { password: _, ...user } = found;
-    localStorage.setItem('token', token);
-    mockDb.setCurrentUser(user);
-    set({ user, token, isAuthenticated: true });
-    return true;
+  login: async (email, password) => {
+    try {
+      const json = await apiPost('/auth/login', { email, password });
+      const { user, token } = json.data;
+      localStorage.setItem('token', token);
+      set({ user, token, isAuthenticated: true });
+      return true;
+    } catch (err) {
+      return false;
+    }
   },
 
-  register: (data) => {
-    const users = mockDb.getUsers();
-    if (users.find(u => u.email === data.email)) return false;
-    const newUser = { id_user: users.length + 1, ...data, password: data.password };
-    users.push(newUser);
-    return true;
+  register: async (data) => {
+    try {
+      const json = await apiPost('/auth/register', data);
+      const { user, token } = json.data;
+      localStorage.setItem('token', token);
+      set({ user, token, isAuthenticated: true });
+      return json;
+    } catch (err) {
+      throw err;
+    }
   },
 
-  logout: () => {
+  logout: async () => {
+    try {
+      await apiPost('/auth/logout');
+    } catch {
+      // tetap logout meski gagal
+    }
     localStorage.removeItem('token');
-    mockDb.setCurrentUser(null);
     set({ user: null, token: null, isAuthenticated: false });
   },
 
-  loadUser: () => {
-    const user = mockDb.getCurrentUser();
-    if (user) set({ user, isAuthenticated: true });
+  loadUser: async () => {
+    try {
+      const json = await apiGet('/auth/me');
+      set({ user: json.data, isAuthenticated: true });
+    } catch {
+      localStorage.removeItem('token');
+      set({ user: null, token: null, isAuthenticated: false });
+    }
   },
 
   setUser: (user) => set({ user }),
