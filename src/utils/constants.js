@@ -13,7 +13,6 @@ export const STATUS_KELUHAN = { BARU: 'baru', DIPROSES: 'diproses', SELESAI: 'se
 export const METODE_PEMBAYARAN = { TRANSFER: 'transfer', TUNAI: 'tunai', QRIS: 'qris' };
 
 export const ROUTES = {
-  LANDING: '/',
   LOGIN: '/login',
   REGISTER: '/register',
   PEMILIK: {
@@ -25,7 +24,6 @@ export const ROUTES = {
     TAGIHAN: '/pemilik/tagihan',
     PEMBAYARAN: '/pemilik/pembayaran',
     KELUHAN: '/pemilik/keluhan',
-    PROFIL: '/pemilik/profil',
   },
   PENGHUNI: {
     DASHBOARD: '/penghuni/dashboard',
@@ -35,6 +33,5 @@ export const ROUTES = {
     TAGIHAN: '/penghuni/tagihan',
     TAGIHAN_BAYAR: (id) => `/penghuni/tagihan/bayar/${id}`,
     KELUHAN: '/penghuni/keluhan',
-    PROFIL: '/penghuni/profil',
   },
 };

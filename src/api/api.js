@@ -2,28 +2,51 @@ const BASE_URL = '/api/v1';
 
 export async function apiFetch(endpoint, options = {}) {
   const token = localStorage.getItem('token');
-  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  const headers = { ...(options.headers || {}) };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message || 'Request failed');
+  let body = options.body;
+  if (body && !(body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+    if (typeof body !== 'string') body = JSON.stringify(body);
   }
-  return res.json();
+
+  const res = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers, body });
+
+  if (res.status === 401 && !endpoint.startsWith('/auth/login')) {
+    localStorage.removeItem('token');
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  const payload = contentType.includes('application/json') ? await res.json() : await res.text();
+
+  if (!res.ok) {
+    const message = (payload && typeof payload === 'object' && payload.message) || payload || res.statusText;
+    throw new Error(message);
+  }
+  return payload;
 }
 
 export function apiGet(endpoint, params) {
-  const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+  const q = {};
+  if (params) {
+    for (const k in params) {
+      if (params[k] !== undefined && params[k] !== null && params[k] !== '') q[k] = params[k];
+    }
+  }
+  const qs = Object.keys(q).length ? '?' + new URLSearchParams(q).toString() : '';
   return apiFetch(`${endpoint}${qs}`);
 }
 
 export function apiPost(endpoint, body) {
-  return apiFetch(endpoint, { method: 'POST', body: JSON.stringify(body) });
+  return apiFetch(endpoint, { method: 'POST', body });
 }
 
 export function apiPut(endpoint, body) {
-  return apiFetch(endpoint, { method: 'PUT', body: JSON.stringify(body) });
+  return apiFetch(endpoint, { method: 'PUT', body });
 }
 
 export function apiDelete(endpoint) {
@@ -31,8 +54,5 @@ export function apiDelete(endpoint) {
 }
 
 export function apiUpload(endpoint, formData) {
-  const token = localStorage.getItem('token');
-  const headers = {};
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  return fetch(`${BASE_URL}${endpoint}`, { method: 'POST', headers, body: formData }).then(r => r.json());
+  return apiFetch(endpoint, { method: 'POST', body: formData });
 }

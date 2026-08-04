@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
-import { getDashboardPemilik, getAktivitas } from '../../features/dashboard/api';
-import { formatCurrency } from '../../utils/formatter';
+import { useDashboardPemilik, useAktivitas } from '../../features/dashboard/hooks/useDashboard';
+import { formatCurrency, waktuLalu } from '../../utils/formatter';
 import { ROUTES } from '../../utils/constants';
 
 const d = {
@@ -16,16 +15,15 @@ const d = {
 };
 
 export default function PemilikDashboard() {
-  const [stats, setStats] = useState(null);
-  const [aktivitas, setAktivitas] = useState([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    getDashboardPemilik().then(r => setStats(r.data));
-    getAktivitas().then(r => setAktivitas(r.data));
-  }, []);
+  const { data: dashData, isLoading } = useDashboardPemilik();
+  const { data: aktivitasData } = useAktivitas();
 
-  if (!stats) return <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Memuat...</p>;
+  const stats = dashData?.data;
+  const aktivitas = aktivitasData?.data || [];
+
+  if (isLoading || !stats) return <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Memuat...</p>;
 
   return (
     <div>
@@ -58,12 +56,13 @@ export default function PemilikDashboard() {
           <div key={a.id} className="recent-item">
             <div className="ri-left">
               <svg className="icon" width="16" height="16" viewBox="0 0 24 24"><path d={a.tipe === 'penyewaan' ? d.receipt : a.tipe === 'pembayaran' ? d.check : a.tipe === 'keluhan' ? d.alert : d.card}/></svg>
-              <span dangerouslySetInnerHTML={{ __html: a.deskripsi }} />
-              <span className="ri-detail">{a.waktu}</span>
+              <span>{a.deskripsi}</span>
+              <span className="ri-detail">{waktuLalu(a.waktu)}</span>
             </div>
             <Badge status={a.status === 'Menunggu' || a.status === 'Menunggu Verifikasi' || a.status === 'Baru' ? 'menunggu' : 'lunas'}>{a.status}</Badge>
           </div>
         ))}
+        {aktivitas.length === 0 && <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Belum ada aktivitas.</p>}
       </div>
     </div>
   );

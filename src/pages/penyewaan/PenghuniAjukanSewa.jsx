@@ -1,32 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getKamarList } from '../../features/kamar/api';
-import { ajukanSewa } from '../../features/penyewaan/api';
+import { useToast } from '../../components/ui/ToastContext';
+import { useKamarDetail } from '../../features/kamar/hooks/useKamar';
+import { useAjukanSewa } from '../../features/penyewaan/hooks/usePenyewaan';
 import { formatCurrency } from '../../utils/formatter';
 import { ROUTES } from '../../utils/constants';
+import { getMessage } from '../../utils/messages';
 
 export default function PenghuniAjukanSewa() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const [kamar, setKamar] = useState(null);
-  const [form, setForm] = useState({ id_kamar: '', tanggal_masuk: '', durasi: '6' });
+  const toast = useToast();
+  const kamarId = params.get('kamar');
+  const [form, setForm] = useState({ tanggal_masuk: '', durasi: '6' });
 
-  useEffect(() => {
-    const id = params.get('kamar');
-    if (id) {
-      getKamarList({}).then(r => {
-        const k = r.data.find(k => k.id_kamar === Number(id));
-        if (k) { setKamar(k); setForm(f => ({ ...f, id_kamar: k.id_kamar })); }
-      });
-    }
-  }, []);
+  const { data: kamarData, isLoading } = useKamarDetail(kamarId || undefined);
+  const ajukanMutation = useAjukanSewa();
+
+  const kamar = kamarData?.data || null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await ajukanSewa({ ...form, id_kamar: Number(form.id_kamar) });
-    navigate(ROUTES.PENGHUNI.PENYEWAAN);
+    try {
+      await ajukanMutation.mutateAsync({
+        id_kamar: kamar.id_kamar,
+        tanggal_masuk: form.tanggal_masuk,
+        durasi: Number(form.durasi),
+        catatan: form.catatan || null,
+      });
+      toast.success(getMessage('M10').message);
+      navigate(ROUTES.PENGHUNI.PENYEWAAN);
+    } catch (err) {
+      toast.error(err.message || getMessage('M11').message);
+    }
   };
 
+  if (isLoading) return <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Memuat...</p>;
   if (!kamar) return <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Pilih kamar dari halaman cari kamar.</p>;
 
   return (
@@ -62,7 +71,7 @@ export default function PenghuniAjukanSewa() {
 
           <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
             <button type="button" className="btn btn-line" onClick={() => navigate(ROUTES.PENGHUNI.KAMAR)}>Batal</button>
-            <button type="submit" className="btn btn-solid"><svg className="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Ajukan Sekarang</button>
+            <button type="submit" className="btn btn-solid" disabled={ajukanMutation.isPending}><svg className="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg> {ajukanMutation.isPending ? 'Memproses...' : 'Ajukan Sekarang'}</button>
           </div>
         </form>
       </div>

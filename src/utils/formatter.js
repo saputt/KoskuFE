@@ -21,3 +21,12 @@ export function waktuLalu(dateStr) {
   const days = Math.floor(hrs / 24);
   return `${days} hari lalu`;
 }
+
+const BULAN_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+export function formatPeriode(periode) {
+  if (!periode) return '—';
+  const m = /^(\d{4})-(\d{2})$/.exec(periode);
+  if (m) return `${BULAN_ID[Number(m[2]) - 1]} ${m[1]}`;
+  return periode;
+}

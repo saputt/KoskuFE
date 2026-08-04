@@ -1,29 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getKamarDetail, createKamar, updateKamar } from '../../features/kamar/api';
+import { useToast } from '../../components/ui/ToastContext';
+import { useKamarDetail, useCreateKamar, useUpdateKamar } from '../../features/kamar/hooks/useKamar';
 import { ROUTES } from '../../utils/constants';
+import { getMessage } from '../../utils/messages';
 
 export default function PemilikFormKamar() {
   const { id } = useParams();
   const isEdit = !!id;
   const navigate = useNavigate();
+  const toast = useToast();
   const [form, setForm] = useState({ no_kamar: '', harga_sewa: '', kapasitas: '', status: 'tersedia', fasilitas: '' });
+  const [loadedId, setLoadedId] = useState(null);
 
-  useEffect(() => {
-    if (isEdit) getKamarDetail(Number(id)).then(r => {
-      const k = r.data;
-      setForm({ no_kamar: k.no_kamar, harga_sewa: k.harga_sewa, kapasitas: k.kapasitas, status: k.status, fasilitas: k.fasilitas || '' });
-    });
-  }, [id]);
+  const { data: detail } = useKamarDetail(isEdit ? id : undefined);
+  const createMutation = useCreateKamar();
+  const updateMutation = useUpdateKamar();
+
+  if (detail?.data && loadedId !== id) {
+    const k = detail.data;
+    setLoadedId(id);
+    setForm({ no_kamar: k.no_kamar, harga_sewa: k.harga_sewa, kapasitas: k.kapasitas, status: k.status, fasilitas: k.fasilitas || '' });
+  }
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = { ...form, harga_sewa: Number(form.harga_sewa), kapasitas: Number(form.kapasitas) };
-    if (isEdit) await updateKamar(Number(id), payload);
-    else await createKamar(payload);
-    navigate(ROUTES.PEMILIK.KAMAR);
+    try {
+      if (isEdit) await updateMutation.mutateAsync({ id, data: payload });
+      else await createMutation.mutateAsync(payload);
+      toast.success(getMessage(isEdit ? 'M06' : 'M05').message);
+      navigate(ROUTES.PEMILIK.KAMAR);
+    } catch (err) {
+      toast.error(err.message || getMessage('M09').message);
+    }
   };
 
   return (
@@ -57,7 +69,7 @@ export default function PemilikFormKamar() {
 
           <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
             <button type="button" className="btn btn-line" onClick={() => navigate(ROUTES.PEMILIK.KAMAR)}>Batal</button>
-            <button type="submit" className="btn btn-solid">Simpan</button>
+            <button type="submit" className="btn btn-solid" disabled={createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan'}</button>
           </div>
         </form>
       </div>

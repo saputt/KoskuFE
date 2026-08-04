@@ -1,4 +1,4 @@
-export default function Select({ label, required, options, placeholder, className = '', ...props }) {
+export default function Select({ label, required, options, placeholder, ...props }) {
   return (
     <div className="field">
       {label && <label>{label}{required && <span className="req">*</span>}</label>}

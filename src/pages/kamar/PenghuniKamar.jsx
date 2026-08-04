@@ -1,19 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Badge from '../../components/ui/Badge';
-import { getKamarList } from '../../features/kamar/api';
+import { useKamarList } from '../../features/kamar/hooks/useKamar';
 import { formatCurrency } from '../../utils/formatter';
 import { ROUTES } from '../../utils/constants';
 
 export default function PenghuniKamar() {
-  const [data, setData] = useState([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    getKamarList({ search: search || undefined, status: filter || undefined, sort: 'harga_asc' }).then(r => setData(r.data));
-  }, [search, filter]);
+  const { data, isLoading } = useKamarList({
+    search: search || undefined,
+    status: filter || undefined,
+    sort: 'harga_asc',
+  });
+
+  const kamar = data?.data || [];
 
   return (
     <div>
@@ -30,17 +33,22 @@ export default function PenghuniKamar() {
         <select><option value="">Urutkan</option><option>Harga Terendah</option><option>Harga Tertinggi</option></select>
       </div>
 
-      <div className="room-grid">
-        {data.map(k => (
-          <div key={k.id_kamar} className="room-card" onClick={() => k.status === 'tersedia' && navigate(`${ROUTES.PENGHUNI.PENYEWAAN_AJUKAN}?kamar=${k.id_kamar}`)}>
-            <div className="room-img">{`Kamar ${k.no_kamar}`}</div>
-            <div className="room-no">{k.no_kamar}</div>
-            <div className="room-price">{formatCurrency(k.harga_sewa)} / bulan</div>
-            <div className="room-meta"><span>Kapasitas: {k.kapasitas}</span></div>
-            <div style={{ marginTop: '12px' }}><Badge status={k.status}>{k.status}</Badge></div>
-          </div>
-        ))}
-      </div>
+      {isLoading ? (
+        <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Memuat...</p>
+      ) : (
+        <div className="room-grid">
+          {kamar.map(k => (
+            <div key={k.id_kamar} className="room-card" onClick={() => k.status === 'tersedia' && navigate(`${ROUTES.PENGHUNI.PENYEWAAN_AJUKAN}?kamar=${k.id_kamar}`)}>
+              <div className="room-img">{`Kamar ${k.no_kamar}`}</div>
+              <div className="room-no">{k.no_kamar}</div>
+              <div className="room-price">{formatCurrency(k.harga_sewa)} / bulan</div>
+              <div className="room-meta"><span>Kapasitas: {k.kapasitas}</span></div>
+              <div style={{ marginTop: '12px' }}><Badge status={k.status}>{k.status}</Badge></div>
+            </div>
+          ))}
+          {kamar.length === 0 && <p style={{ fontSize: '14px', color: 'var(--ink-soft)', gridColumn: '1/-1' }}>Belum ada kamar.</p>}
+        </div>
+      )}
     </div>
   );
 }

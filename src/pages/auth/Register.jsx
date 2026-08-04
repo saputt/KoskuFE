@@ -1,32 +1,37 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import useAuthStore from '../../stores/authStore';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useToast } from '../../components/ui/ToastContext';
+import { useRegister } from '../../features/auth/hooks/useAuth';
+import { getMessage } from '../../utils/messages';
 
 export default function Register() {
   const [form, setForm] = useState({ nama: '', email: '', no_hp: '', password: '', konfirmasi: '' });
   const [showPw, setShowPw] = useState(false);
-  const [err, setErr] = useState('');
-  const register = useAuthStore(s => s.register);
-  const navigate = useNavigate();
+  const registerMutation = useRegister();
+  const toast = useToast();
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setErr('');
-    if (form.password !== form.konfirmasi) { setErr('Password dan konfirmasi tidak cocok.'); return; }
-    const ok = register({ nama: form.nama, email: form.email, no_hp: form.no_hp, password: form.password, role: 'penghuni' });
-    if (!ok) { setErr('Email sudah terdaftar.'); return; }
-    navigate('/login');
+    if (form.password !== form.konfirmasi) {
+      toast.warning(getMessage('M04').message);
+      return;
+    }
+    registerMutation.mutate({ nama: form.nama, email: form.email, no_hp: form.no_hp, password: form.password, role: 'penghuni' });
   };
+
+  useEffect(() => {
+    if (registerMutation.isError) {
+      toast.error(registerMutation.error?.message || getMessage('M03').message);
+    }
+  }, [registerMutation.isError, registerMutation.error, toast]);
 
   return (
     <>
       <span className="eyebrow">Penghuni Baru</span>
       <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '26px', letterSpacing: '-.3px', marginBottom: '8px' }}>Buat akun baru</h1>
       <p style={{ color: 'var(--ink-soft)', fontSize: '14.5px', marginBottom: '28px' }}>Daftar sebagai penghuni untuk mulai mencari kos.</p>
-
-      {err && <div className="alert" style={{ display: 'block' }}>{err}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="field"><label>Nama lengkap <span className="req">*</span></label><div className="input-wrap"><input value={form.nama} onChange={set('nama')} placeholder="Masukkan nama lengkap" required /></div></div>
@@ -48,7 +53,9 @@ export default function Register() {
           <p className="hint">Gunakan kombinasi huruf dan angka.</p>
         </div>
         <div className="field"><label>Konfirmasi password <span className="req">*</span></label><div className="input-wrap"><input type="password" value={form.konfirmasi} onChange={set('konfirmasi')} placeholder="Masukkan ulang password" required /></div></div>
-        <button type="submit" className="btn btn-solid" style={{ width: '100%' }}>Daftar</button>
+        <button type="submit" className="btn btn-solid" style={{ width: '100%' }} disabled={registerMutation.isPending}>
+          {registerMutation.isPending ? 'Memproses...' : 'Daftar'}
+        </button>
       </form>
 
       <div className="divider-line"></div>

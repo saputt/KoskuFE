@@ -5,14 +5,13 @@ export default function AuthLayout() {
     <div className="layout">
       <div className="form-panel">
         <div className="form-wrap">
-          <Link to="/" className="brand" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '19px', textDecoration: 'none', color: 'var(--ink)', marginBottom: '52px' }}>
+          <Link to="/login" className="brand" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '19px', textDecoration: 'none', color: 'var(--ink)', marginBottom: '52px' }}>
             <span className="brand-mark" style={{ width: '32px', height: '32px', borderRadius: '7px', background: 'var(--pine)', color: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg className="icon" width="17" height="17" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-5h4v5h3a1 1 0 0 0 1-1v-9"/></svg>
             </span>
             KosKu
           </Link>
           <Outlet />
-          <Link to="/" className="back"><svg className="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg> Kembali ke beranda</Link>
         </div>
       </div>
       <div className="illus-panel">

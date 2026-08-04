@@ -1,37 +1,54 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Badge from '../../components/ui/Badge';
-import { getTagihanList } from '../../features/tagihan/api';
-import { bayarTagihan, getPembayaranList } from '../../features/pembayaran/api';
-import useAuthStore from '../../stores/authStore';
-import { formatCurrency, formatDate } from '../../utils/formatter';
+import ConfirmModal from '../../components/ui/ConfirmModal';
+import { useToast } from '../../components/ui/ToastContext';
+import { useTagihanDetail } from '../../features/tagihan/hooks/useTagihan';
+import { usePembayaranList, useBayarTagihan } from '../../features/pembayaran/hooks/usePembayaran';
+import { formatCurrency, formatDate, formatPeriode } from '../../utils/formatter';
 import { ROUTES } from '../../utils/constants';
+import { getMessage } from '../../utils/messages';
 
 export default function PenghuniBayar() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const user = useAuthStore(s => s.user);
-  const [tagihan, setTagihan] = useState(null);
-  const [riwayat, setRiwayat] = useState([]);
-  const [metode, setMetode] = useState('transfer');
+  const [metode, setMetode] = useState('');
   const [jumlah, setJumlah] = useState('');
+  const [bukti, setBukti] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const toast = useToast();
 
-  useEffect(() => {
-    getTagihanList({ id_user: user.id_user }).then(r => {
-      const t = r.data.find(t => t.id_tagihan === Number(id));
-      setTagihan(t);
-      if (t) setJumlah(t.total_tagihan);
-    });
-    getPembayaranList({ id_user: user.id_user }).then(r => setRiwayat(r.data));
-  }, [id]);
+  const { data: tagihanData, isLoading } = useTagihanDetail(id);
+  const { data: pembayaranData } = usePembayaranList();
+  const bayarMutation = useBayarTagihan();
+
+  const tagihan = tagihanData?.data || null;
+  const riwayat = pembayaranData?.data || [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await bayarTagihan({ id_tagihan: Number(id), metode_pembayaran: metode, jumlah_bayar: Number(jumlah) });
-    navigate(ROUTES.PENGHUNI.TAGIHAN);
+    if (!metode || !jumlah) return;
+    setShowConfirm(true);
   };
 
-  if (!tagihan) return <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Memuat...</p>;
+  const handleConfirm = async () => {
+    const formData = new FormData();
+    formData.append('id_tagihan', tagihan.id_tagihan);
+    formData.append('metode_pembayaran', metode);
+    formData.append('jumlah_bayar', String(Number(jumlah)));
+    if (bukti) formData.append('bukti_bayar', bukti);
+    try {
+      await bayarMutation.mutateAsync(formData);
+      toast.success(getMessage('M17').message);
+      navigate(ROUTES.PENGHUNI.TAGIHAN);
+    } catch (err) {
+      toast.error(err.message || getMessage('M18').message);
+      setShowConfirm(false);
+    }
+  };
+
+  if (isLoading) return <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Memuat...</p>;
+  if (!tagihan) return <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Tagihan tidak ditemukan.</p>;
 
   return (
     <div style={{ maxWidth: '820px' }}>
@@ -54,7 +71,7 @@ export default function PenghuniBayar() {
           <div className="field">
             <label>Metode Pembayaran <span className="req">*</span></label>
             <div className="input-wrap">
-              <select value={metode} onChange={e => setMetode(e.target.value)}>
+              <select value={metode} onChange={e => setMetode(e.target.value)} required>
                 <option value="">Pilih metode</option>
                 <option value="transfer">Transfer Bank</option>
                 <option value="tunai">Tunai</option>
@@ -63,9 +80,13 @@ export default function PenghuniBayar() {
             </div>
           </div>
           <div className="field"><label>Jumlah Dibayar <span className="req">*</span></label><div className="input-wrap"><input type="number" value={jumlah} onChange={e => setJumlah(e.target.value)} required /></div></div>
+          <div className="field">
+            <label>Bukti Bayar</label>
+            <div className="input-wrap"><input type="file" accept="image/*" onChange={e => setBukti(e.target.files[0] || null)} /></div>
+          </div>
           <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
             <button type="button" className="btn btn-line" onClick={() => navigate(ROUTES.PENGHUNI.TAGIHAN)}>Batal</button>
-            <button type="submit" className="btn btn-solid" style={{ width: '100%' }}><svg className="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Kirim Pembayaran</button>
+            <button type="submit" className="btn btn-solid" style={{ width: '100%' }} disabled={bayarMutation.isPending}><svg className="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg> {bayarMutation.isPending ? 'Memproses...' : 'Kirim Pembayaran'}</button>
           </div>
         </form>
       </div>
@@ -85,6 +106,24 @@ export default function PenghuniBayar() {
           ))}
         </tbody>
       </table>
+
+      <ConfirmModal
+        open={showConfirm}
+        title={getMessage('M16').title}
+        description={getMessage('M16').message}
+        confirmLabel="Kirim Pembayaran"
+        loading={bayarMutation.isPending}
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={handleConfirm}
+      >
+        <div className="detail-box">
+          <div className="row"><span className="label">Tagihan</span><span>{formatPeriode(tagihan.periode)}</span></div>
+          <div className="row"><span className="label">Jatuh Tempo</span><span>{formatDate(tagihan.tanggal_jatuh_tempo)}</span></div>
+          <div className="row"><span className="label">Metode</span><span style={{ textTransform: 'capitalize' }}>{metode}</span></div>
+          <div className="row"><span className="label">Nominal</span><span>{formatCurrency(jumlah)}</span></div>
+          <div className="row"><span className="label">Bukti Bayar</span><span>{bukti ? bukti.name : 'Tanpa bukti'}</span></div>
+        </div>
+      </ConfirmModal>
     </div>
   );
 }

@@ -1,5 +1,9 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../../stores/authStore';
+import { useLogout } from '../../features/auth/hooks/useAuth';
+import ConfirmModal from '../../components/ui/ConfirmModal';
+import { getMessage } from '../../utils/messages';
 import { ROUTES } from '../../utils/constants';
 
 const d = {
@@ -20,13 +24,13 @@ const nav = [
   { to: ROUTES.PENGHUNI.PENYEWAAN, label: 'Penyewaan Saya', icon: 'receipt' },
   { to: ROUTES.PENGHUNI.TAGIHAN, label: 'Tagihan', icon: 'card', badge: 2 },
   { to: ROUTES.PENGHUNI.KELUHAN, label: 'Keluhan', icon: 'alert', badge: 1 },
-  { to: ROUTES.PENGHUNI.PROFIL, label: 'Profil', icon: 'user' },
 ];
 
 export default function PenghuniLayout() {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
+  const logoutMutation = useLogout();
+  const [showLogout, setShowLogout] = useState(false);
 
   return (
     <div className="app">
@@ -48,7 +52,7 @@ export default function PenghuniLayout() {
           })}
         </nav>
         <div className="side-logout">
-          <button onClick={() => { logout(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '10px 12px', borderRadius: 'var(--radius-sm)', color: 'rgba(250,248,242,.5)', fontSize: '14px', fontWeight: 500, textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+          <button onClick={() => setShowLogout(true)} style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '10px 12px', borderRadius: 'var(--radius-sm)', color: 'rgba(250,248,242,.5)', fontSize: '14px', fontWeight: 500, textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
             <svg className="icon" width="17" height="17" viewBox="0 0 24 24"><path d={d.logout}/></svg> Keluar
           </button>
         </div>
@@ -67,6 +71,17 @@ export default function PenghuniLayout() {
         </header>
         <div className="content"><Outlet /></div>
       </main>
+
+      <ConfirmModal
+        open={showLogout}
+        title={getMessage('M29').title}
+        description={getMessage('M29').message}
+        confirmLabel="Keluar"
+        danger
+        loading={logoutMutation.isPending}
+        onCancel={() => setShowLogout(false)}
+        onConfirm={() => logoutMutation.mutate()}
+      />
     </div>
   );
 }

@@ -1,24 +1,25 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import useAuthStore from '../../stores/authStore';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useToast } from '../../components/ui/ToastContext';
+import { useLogin } from '../../features/auth/hooks/useAuth';
+import { getMessage } from '../../utils/messages';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
-  const [error, setError] = useState('');
-  const login = useAuthStore(s => s.login);
-  const loadUser = useAuthStore(s => s.loadUser);
-  const navigate = useNavigate();
+  const loginMutation = useLogin();
+  const toast = useToast();
+
+  useEffect(() => {
+    if (loginMutation.isError) {
+      toast.error(loginMutation.error?.message || getMessage('M01').message);
+    }
+  }, [loginMutation.isError, loginMutation.error, toast]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
-    const ok = login(email, password);
-    if (!ok) { setError('Email atau password salah. Coba lagi.'); return; }
-    loadUser();
-    const user = useAuthStore.getState().user;
-    navigate(user?.role === 'pemilik' ? '/pemilik/dashboard' : '/penghuni/dashboard', { replace: true });
+    loginMutation.mutate({ email, password });
   };
 
   return (
@@ -26,8 +27,6 @@ export default function Login() {
       <span className="eyebrow">Selamat datang kembali</span>
       <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '27px', letterSpacing: '-.3px', marginBottom: '8px' }}>Masuk ke akun</h1>
       <p style={{ color: 'var(--ink-soft)', fontSize: '14.5px', marginBottom: '34px' }}>Masukkan email dan password untuk melanjutkan.</p>
-
-      {error && <div className="alert" style={{ display: 'block' }}>{error}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="field">
@@ -48,7 +47,9 @@ export default function Login() {
             </button>
           </div>
         </div>
-        <button type="submit" className="btn btn-solid" style={{ width: '100%' }}>Masuk</button>
+        <button type="submit" className="btn btn-solid" style={{ width: '100%' }} disabled={loginMutation.isPending}>
+          {loginMutation.isPending ? 'Memproses...' : 'Masuk'}
+        </button>
       </form>
 
       <div className="divider-line"></div>

@@ -1,4 +1,4 @@
-export default function Input({ label, required, error, className = '', ...props }) {
+export default function Input({ label, required, error, ...props }) {
   return (
     <div className="field">
       {label && <label>{label}{required && <span className="req">*</span>}</label>}

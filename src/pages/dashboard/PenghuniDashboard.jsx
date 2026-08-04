@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useAuthStore from '../../stores/authStore';
 import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
-import { getDashboardPenghuni, getAktivitas } from '../../features/dashboard/api';
-import { formatCurrency, formatDate } from '../../utils/formatter';
+import { useDashboardPenghuni, useAktivitas } from '../../features/dashboard/hooks/useDashboard';
+import { formatCurrency, formatDate, waktuLalu } from '../../utils/formatter';
 import { ROUTES } from '../../utils/constants';
 
 const d = {
@@ -16,22 +14,20 @@ const d = {
 };
 
 export default function PenghuniDashboard() {
-  const [stats, setStats] = useState(null);
-  const [aktivitas, setAktivitas] = useState([]);
-  const user = useAuthStore(s => s.user);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    getDashboardPenghuni(user.id_user).then(r => setStats(r.data));
-    getAktivitas().then(r => setAktivitas(r.data));
-  }, []);
+  const { data: dashData, isLoading } = useDashboardPenghuni();
+  const { data: aktivitasData } = useAktivitas();
 
-  if (!stats) return <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Memuat...</p>;
+  const stats = dashData?.data;
+  const aktivitas = aktivitasData?.data || [];
+
+  if (isLoading || !stats) return <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Memuat...</p>;
 
   return (
     <div>
       <div className="stats">
-        <StatCard label="Kamar Saat Ini" value={stats.kamar_saat_ini || '—'} icon={<svg className="icon" width="18" height="18" viewBox="0 0 24 24"><path d={d.grid}/></svg>} delta={stats.sejak ? `Aktif · sejak ${formatDate(stats.sejak)}` : 'Tidak ada'} />
+        <StatCard label="Kamar Saat Ini" value={stats.kamar_saat_ini ? `Kamar ${stats.kamar_saat_ini}` : '—'} icon={<svg className="icon" width="18" height="18" viewBox="0 0 24 24"><path d={d.grid}/></svg>} delta={stats.sejak ? `Aktif · sejak ${formatDate(stats.sejak)}` : 'Tidak ada'} />
         <StatCard label="Tagihan Tertunda" value={stats.tagihan_tertunda} icon={<svg className="icon" width="18" height="18" viewBox="0 0 24 24"><path d={d.card}/></svg>} delta={`Total ${formatCurrency(stats.total_tagihan_tertunda)}`} onClick={() => navigate(ROUTES.PENGHUNI.TAGIHAN)} />
         <StatCard label="Penyewaan Aktif" value={stats.penyewaan_aktif} icon={<svg className="icon" width="18" height="18" viewBox="0 0 24 24"><path d={d.receipt}/></svg>} delta="Menunggu konfirmasi: 0" onClick={() => navigate(ROUTES.PENGHUNI.PENYEWAAN)} />
         <StatCard label="Keluhan Berjalan" value={stats.keluhan_berjalan} icon={<svg className="icon" width="18" height="18" viewBox="0 0 24 24"><path d={d.alert}/></svg>} delta="Perlu ditindaklanjuti" onClick={() => navigate(ROUTES.PENGHUNI.KELUHAN)} />
@@ -58,12 +54,13 @@ export default function PenghuniDashboard() {
           <div key={a.id} className="recent-item">
             <div className="ri-left">
               <svg className="icon" width="16" height="16" viewBox="0 0 24 24"><path d={a.tipe === 'keluhan' ? d.alert : d.card}/></svg>
-              <span dangerouslySetInnerHTML={{ __html: a.deskripsi }} />
-              <span className="ri-detail">{a.waktu}</span>
+              <span>{a.deskripsi}</span>
+              <span className="ri-detail">{waktuLalu(a.waktu)}</span>
             </div>
             <Badge status={a.status === 'Baru' || a.status === 'Menunggu' ? 'menunggu' : a.status === 'Diproses' ? 'diproses' : 'lunas'}>{a.status}</Badge>
           </div>
         ))}
+        {aktivitas.length === 0 && <p style={{ fontSize: '14px', color: 'var(--ink-soft)' }}>Belum ada aktivitas.</p>}
       </div>
     </div>
   );
